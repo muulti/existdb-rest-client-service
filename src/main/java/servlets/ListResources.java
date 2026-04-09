@@ -30,41 +30,53 @@ public class ListResources extends HttpServlet {
 		eXist = new HTTPeXist("http://localHost:8080");
 		System.out.println("---> Saliendo de init()de LoginServlet");
 	}
-	
-	
+
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
-		String collection = "";
-		collection = request.getParameter("collection");
-		String data=""; data = eXist.list(collection);
-		Map<String, String> listaSVG;
-		System.out.println("LIST_RESOURCE" + data);
+		String collection = request.getParameter("collection");
+		String data = eXist.list(collection);
+		System.out.println("LIST_RESOURCE: " + data);
+		System.out.println("***************************************");
+		System.out.println("Listando la colleccion:");
+		System.out.println("Coleccion " + collection);
+
+
 		if (data.equals("")) {
-			System.out.println("----LIST_RESOURCE" + data);
-			request.setAttribute("informacion", "Coleccion No Existe");
+			// Collection no existe
+			request.setAttribute("informacion", "Coleccion No Existe: " + collection);
 			RequestDispatcher rd = request.getRequestDispatcher("/jsp/index.jsp");
 			rd.forward(request, response);
-		} 
-		else {
-			Document doc = convertStringToXMLDocument(data);
-			NodeList valorNode = doc.getElementsByTagName("exist:resource");
-			System.out.println("valor " + valorNode.getLength());
-			System.out.println("valor " + valorNode.item(0).getTextContent());
-			listaSVG = new HashMap<String, String>();
-			for (int i = 0; i < valorNode.getLength(); i++) {
-				String nombre = valorNode.item(i).getAttributes().getNamedItem("name").getNodeValue();
-				String imagen = eXist.read(collection, nombre);
-				System.out.println("nombre: " + nombre);
-				listaSVG.put(nombre, imagen);
-			}
-			request.setAttribute("collection", collection);
-			request.setAttribute("listaSVG", listaSVG);
-			System.out.println("     size:" + listaSVG.size());
-			System.out.println("     Redireccionando el usuario a imagenList.jsp");
-			RequestDispatcher rd = request.getRequestDispatcher("/jsp/imagenList.jsp");
-			rd.forward(request, response);
+			return;
 		}
+
+		Document doc = convertStringToXMLDocument(data);
+		NodeList valorNode = doc.getElementsByTagName("exist:resource");
+		System.out.println("Numero de elementos " + valorNode.getLength());
+		System.out.println("recursos encontrados: " + valorNode.getLength());
+
+		if (valorNode.getLength() == 0) {
+			// Collection exists but is empty
+			request.setAttribute("informacion", "La coleccion '" + collection + "' existe pero esta vacia");
+			RequestDispatcher rd = request.getRequestDispatcher("/jsp/index.jsp");
+			rd.forward(request, response);
+			return;
+		}
+
+		// Collection exists and has resources — load them all
+		Map<String, String> listaSVG = new HashMap<String, String>();
+		for (int i = 0; i < valorNode.getLength(); i++) {
+			String nombre = valorNode.item(i).getAttributes().getNamedItem("name").getNodeValue();
+			String imagen = eXist.read(collection, nombre);
+			System.out.println("nombre: " + nombre);
+			listaSVG.put(nombre, imagen);
+		}
+
+		request.setAttribute("collection", collection);
+		request.setAttribute("listaSVG", listaSVG);
+		System.out.println("size: " + listaSVG.size());
+		RequestDispatcher rd = request.getRequestDispatcher("/jsp/imagenList.jsp");
+		rd.forward(request, response);
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)

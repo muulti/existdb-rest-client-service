@@ -167,24 +167,22 @@ public class HTTPeXist {
 	public int create(String collection) throws IOException {
 		System.out.println("-->CREATE: " + collection);
 
-		// eXist creates a collection via PUT with a special XML payload
+		// Same approach as delete(collection) — use XQuery via GET
+		// xmldb:create-collection creates a proper collection with the directory icon
+		String xquery = "xmldb:create-collection('/db','" + collection + "')";
+		String encodedQuery = codificaQuery(xquery);
+
 		URL url = new URL(
-				this.server + "/exist/rest" + XmldbURI.ROOT_COLLECTION_URI + "/" + collection + "/");
+				this.server + "/exist/rest" + XmldbURI.ROOT_COLLECTION_URI
+						+ "?_query=" + encodedQuery + "&_wrap=no");
 		System.out.println("-->CREATE-url: " + url);
 
 		HttpURLConnection connect = (HttpURLConnection) url.openConnection();
-		connect.setRequestMethod("PUT");
-		connect.setDoOutput(true);
+		connect.setRequestMethod("GET");
 
 		String codigoBase64 = getAuthorizationCode("admin", "admin");
 		connect.setRequestProperty("Authorization", "Basic " + codigoBase64);
-		// Sending a minimal valid XML document causes eXist to create the collection
-		connect.setRequestProperty("Content-Type", "application/xml");
-
-		String minimalXml = "<?xml version=\"1.0\"?><empty/>";
-		byte[] postDataBytes = minimalXml.getBytes(StandardCharsets.UTF_8);
-		connect.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
-		connect.getOutputStream().write(postDataBytes);
+		connect.connect();
 
 		int status = connect.getResponseCode();
 		System.out.println("<--CREATE-status: " + status);
