@@ -57,7 +57,7 @@ public class HTTPeXist {
 	public String list(String collection) throws IOException {
 		String lista = new String();
 
-		// Build the URL pointing to the collection (no resource name, just the collection)
+		//Construccion de URL (en este caso a coleccion, no a un recurso)
 		URL url = new URL(
 				this.server + "/exist/rest" + XmldbURI.ROOT_COLLECTION_URI + "/" + collection);
 		System.out.println("-->LIST-url:" + url.toString());
@@ -65,7 +65,6 @@ public class HTTPeXist {
 		HttpURLConnection connect = (HttpURLConnection) url.openConnection();
 		connect.setRequestMethod("GET");
 
-		// Same Basic Auth as read()
 		String codigoBase64 = getAuthorizationCode("admin", "admin");
 		connect.setRequestProperty("Authorization", "Basic " + codigoBase64);
 		connect.connect();
@@ -73,15 +72,12 @@ public class HTTPeXist {
 		int responseCode = connect.getResponseCode();
 		System.out.println("<--LIST-status: " + responseCode);
 
-		// If collection does not exist in eXist returns 404 - return empty string
-		// ListResources.java checks for empty string to detect missing collections
+		//Si no existe se devuelve vacía
 		if (responseCode == 404) {
 			System.out.println("<--LIST: collection not found, returning empty string");
 			return lista;
 		}
 
-		// Read the XML response - eXist returns an XML document listing
-		// all resources in the collection with <exist:resource> tags
 		InputStream connectInputStream = connect.getInputStream();
 		InputStreamReader inputStreamReader = new InputStreamReader(connectInputStream);
 		BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
@@ -167,8 +163,7 @@ public class HTTPeXist {
 	public int create(String collection) throws IOException {
 		System.out.println("-->CREATE: " + collection);
 
-		// Same approach as delete(collection) — use XQuery via GET
-		// xmldb:create-collection creates a proper collection with the directory icon
+		// Se usa XQuery porque la API REST de eXist no tiene verbo HTTP para crear colecciones vacías directamente
 		String xquery = "xmldb:create-collection('/db','" + collection + "')";
 		String encodedQuery = codificaQuery(xquery);
 
